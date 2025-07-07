@@ -5,7 +5,7 @@ import '../models/poliza_model.dart';
 import '../models/automovil_model.dart';
 
 class PolizaService {
-  final String baseUrl = 'https://bdd-dto-seguros.onrender.com/api'; // Ajusta según tu backend
+  final String baseUrl = 'http://localhost:8083/api'; // Ajusta según tu backend
 
   Future<Poliza> crearPoliza(Poliza poliza) async {
     // Validar que propietario tenga nombre y apellido
