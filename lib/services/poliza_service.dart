@@ -8,13 +8,37 @@ class PolizaService {
   final String baseUrl = 'https://bdd-dto-seguros.onrender.com/api'; // Ajusta según tu backend
 
   Future<Poliza> crearPoliza(Poliza poliza) async {
-    // Validar que propietario tenga nombre y apellido
+    // Validaciones
     final words = poliza.propietario.trim().split(' ');
     if (words.length != 2) {
       throw Exception('El propietario debe tener nombre y apellido');
     }
-    final nombre = words[0];
-    final apellido = words[1];
+    if (poliza.valorSeguroAuto <= 0) {
+      throw Exception('El valor del auto debe ser mayor que 0');
+    }
+    if (poliza.accidentes < 0) {
+      throw Exception('El número de accidentes no puede ser negativo');
+    }
+    if (poliza.costoTotal < 0) {
+      throw Exception('El costo total no puede ser negativo');
+    }
+    if (![
+      'Hyundai',
+      'Tesla',
+      'Toyota',
+      'Ford',
+      'Chevrolet',
+      'BMW',
+      'Mercedes',
+      'Kia',
+      'Nissan',
+      'Volkswagen',
+      'Audi',
+      'Honda',
+      'Otro'
+    ].contains(poliza.modeloAuto)) {
+      throw Exception('Modelo de auto no válido');
+    }
 
     // 1. Crear Propietario
     final propietarioData = {
@@ -80,10 +104,36 @@ class PolizaService {
   }
 
   Future<Poliza> actualizarPoliza(int seguroId, Poliza poliza) async {
-    // Validar que propietario tenga nombre y apellido
+    // Validaciones
     final words = poliza.propietario.trim().split(' ');
     if (words.length != 2) {
       throw Exception('El propietario debe tener nombre y apellido');
+    }
+    if (poliza.valorSeguroAuto <= 0) {
+      throw Exception('El valor del auto debe ser mayor que 0');
+    }
+    if (poliza.accidentes < 0) {
+      throw Exception('El número de accidentes no puede ser negativo');
+    }
+    if (poliza.costoTotal < 0) {
+      throw Exception('El costo total no puede ser negativo');
+    }
+    if (![
+      'Hyundai',
+      'Tesla',
+      'Toyota',
+      'Ford',
+      'Chevrolet',
+      'BMW',
+      'Mercedes',
+      'Kia',
+      'Nissan',
+      'Volkswagen',
+      'Audi',
+      'Honda',
+      'Otro'
+    ].contains(poliza.modeloAuto)) {
+      throw Exception('Modelo de auto no válido');
     }
 
     // Actualizar Automovil

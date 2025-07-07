@@ -1,8 +1,8 @@
-// File: /lib/viewmodels/poliza_viewmodel.dart
+//File: /lib/viewmodels/poliza_viewmodel.dart
 import 'package:flutter/material.dart';
-import '../models/automovil_model.dart';
 import '../models/poliza_model.dart';
 import '../services/poliza_service.dart';
+import '../models/automovil_model.dart';
 
 class PolizaViewModel extends ChangeNotifier {
   String propietario = '';
@@ -12,6 +12,7 @@ class PolizaViewModel extends ChangeNotifier {
   int accidentes = 0;
   double costoTotal = 0.0;
   List<Poliza> polizas = [];
+  List<Automovil> automovilesSinSeguro = [];
   int editingSeguroId = 0;
   int editingPropietarioId = 0;
   int editingAutomovilId = 0;
@@ -34,11 +35,23 @@ class PolizaViewModel extends ChangeNotifier {
   void cargarPoliza(Poliza poliza) {
     propietario = poliza.propietario;
     valorSeguroAuto = poliza.valorSeguroAuto;
-    // Validar modeloAuto
-    modeloAuto = ['Hyundai', 'Tesla', 'Toyota', 'Otro'].contains(poliza.modeloAuto)
+    modeloAuto = [
+      'Hyundai',
+      'Tesla',
+      'Toyota',
+      'Ford',
+      'Chevrolet',
+      'BMW',
+      'Mercedes',
+      'Kia',
+      'Nissan',
+      'Volkswagen',
+      'Audi',
+      'Honda',
+      'Otro'
+    ].contains(poliza.modeloAuto)
         ? poliza.modeloAuto
         : 'Hyundai';
-    // Validar edadPropietario
     edadPropietario = ['18-23', '23-55', '55+'].contains(poliza.edadPropietario)
         ? poliza.edadPropietario
         : '18-23';
@@ -51,6 +64,20 @@ class PolizaViewModel extends ChangeNotifier {
   }
 
   Future<void> guardarPoliza() async {
+    if (valorSeguroAuto <= 0) {
+      throw Exception('El valor del auto debe ser mayor que 0');
+    }
+    if (accidentes < 0) {
+      throw Exception('El número de accidentes no puede ser negativo');
+    }
+    if (costoTotal < 0) {
+      throw Exception('El costo total no puede ser negativo');
+    }
+    final words = propietario.trim().split(' ');
+    if (words.length != 2) {
+      throw Exception('El propietario debe tener nombre y apellido');
+    }
+
     final poliza = Poliza(
       id: editingSeguroId,
       propietario: propietario,
@@ -88,6 +115,7 @@ class PolizaViewModel extends ChangeNotifier {
     try {
       await _service.eliminarSeguro(seguroId);
       polizas.removeWhere((p) => p.id == seguroId);
+      await obtenerAutomovilesSinSeguro(); // Actualizar lista de autos sin seguro
       notifyListeners();
     } catch (e) {
       print('Error: $e');
@@ -99,6 +127,7 @@ class PolizaViewModel extends ChangeNotifier {
     try {
       await _service.eliminarAutomovil(automovilId);
       polizas.removeWhere((p) => p.automovilId == automovilId);
+      await obtenerAutomovilesSinSeguro(); // Actualizar lista de autos sin seguro
       notifyListeners();
     } catch (e) {
       print('Error: $e');
@@ -110,6 +139,7 @@ class PolizaViewModel extends ChangeNotifier {
     try {
       await _service.eliminarPropietario(propietarioId);
       polizas.removeWhere((p) => p.propietarioId == propietarioId);
+      await obtenerAutomovilesSinSeguro(); // Actualizar lista de autos sin seguro
       notifyListeners();
     } catch (e) {
       print('Error: $e');
@@ -126,7 +156,6 @@ class PolizaViewModel extends ChangeNotifier {
       throw e;
     }
   }
-  List<Automovil> automovilesSinSeguro = [];
 
   Future<void> obtenerAutomovilesSinSeguro() async {
     try {
@@ -149,6 +178,4 @@ class PolizaViewModel extends ChangeNotifier {
       throw e;
     }
   }
-
-
 }

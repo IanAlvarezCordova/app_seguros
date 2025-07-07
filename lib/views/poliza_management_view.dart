@@ -1,4 +1,4 @@
-// File: lib/views/poliza_management_view.dart
+//File: lib/views/poliza_management_view.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/poliza_viewmodel.dart';
@@ -73,6 +73,16 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                   label: "Valor del Auto",
                   keyboardType: TextInputType.number,
                   onChanged: (val) => vm.valorSeguroAuto = double.tryParse(val) ?? 0.0,
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return "El campo es requerido";
+                    }
+                    final valor = double.tryParse(val);
+                    if (valor == null || valor <= 0) {
+                      return "El valor debe ser mayor que 0";
+                    }
+                    return null;
+                  },
                 ),
                 SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -86,12 +96,30 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  items: ['Hyundai', 'Tesla', 'Toyota', 'Otro']
-                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                      .toList(),
+                  items: [
+                    'Hyundai',
+                    'Tesla',
+                    'Toyota',
+                    'Ford',
+                    'Chevrolet',
+                    'BMW',
+                    'Mercedes',
+                    'Kia',
+                    'Nissan',
+                    'Volkswagen',
+                    'Audi',
+                    'Honda',
+                    'Otro'
+                  ].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                   onChanged: (val) {
                     vm.modeloAuto = val!;
                     vm.notifyListeners();
+                  },
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return "Seleccione un modelo";
+                    }
+                    return null;
                   },
                 ),
                 SizedBox(height: 12),
@@ -113,6 +141,12 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                     vm.edadPropietario = val!;
                     vm.notifyListeners();
                   },
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return "Seleccione un rango de edad";
+                    }
+                    return null;
+                  },
                 ),
                 SizedBox(height: 12),
                 _buildTextField(
@@ -120,6 +154,16 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                   label: "Número de Accidentes",
                   keyboardType: TextInputType.number,
                   onChanged: (val) => vm.accidentes = int.tryParse(val) ?? 0,
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return "El campo es requerido";
+                    }
+                    final accidentes = int.tryParse(val);
+                    if (accidentes == null || accidentes < 0) {
+                      return "El número de accidentes no puede ser negativo";
+                    }
+                    return null;
+                  },
                 ),
                 SizedBox(height: 12),
                 _buildTextField(
@@ -127,6 +171,16 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                   label: "Costo Total (opcional)",
                   keyboardType: TextInputType.number,
                   onChanged: (val) => vm.costoTotal = double.tryParse(val) ?? 0.0,
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return null; // Campo opcional
+                    }
+                    final costo = double.tryParse(val);
+                    if (costo == null || costo <= 0) {
+                      return "El costo debe ser mayor que 0";
+                    }
+                    return null;
+                  },
                 ),
               ],
             ),
@@ -142,18 +196,17 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
-                final propietario = _propietarioController.text.trim();
-                final words = propietario.split(' ');
-                if (words.length != 2) {
+                final form = Form.of(context);
+                if (form != null && form.validate()) {
+                  _guardarPoliza(context, vm);
+                } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text("El propietario debe tener nombre y apellido"),
+                      content: Text("Por favor, corrija los errores en el formulario"),
                       backgroundColor: Colors.red,
                     ),
                   );
-                  return;
                 }
-                _guardarPoliza(context, vm);
               },
               child: Text(vm.editingSeguroId == 0 ? "Crear" : "Actualizar"),
             ),
@@ -227,6 +280,24 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
         return Colors.black87;
       case 'Toyota':
         return Colors.green.shade700;
+      case 'Ford':
+        return Colors.blue.shade900;
+      case 'Chevrolet':
+        return Colors.red.shade700;
+      case 'BMW':
+        return Colors.blue.shade500;
+      case 'Mercedes':
+        return Colors.grey.shade800;
+      case 'Kia':
+        return Colors.orange.shade700;
+      case 'Nissan':
+        return Colors.red.shade900;
+      case 'Volkswagen':
+        return Colors.blue.shade300;
+      case 'Audi':
+        return Colors.black54;
+      case 'Honda':
+        return Colors.blue.shade200;
       default:
         return Colors.grey.shade600;
     }
@@ -432,20 +503,22 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                                     icon: Icon(Icons.person_remove, color: Colors.orange),
                                     onPressed: () async {
                                       bool? confirm = await _showConfirmDialog(
-                                          context, '¿Eliminar este propietario?');
+                                          context,
+                                          '¿Eliminar este propietario? Esto también eliminará sus automóviles y seguros asociados.');
                                       if (confirm == true) {
                                         try {
                                           await vm.eliminarPropietario(poliza.propietarioId);
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
-                                              content: Text("Propietario eliminado"),
+                                              content: Text("Propietario y sus automóviles eliminados"),
                                               backgroundColor: Colors.teal,
                                             ),
                                           );
                                         } catch (e) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
-                                              content: Text("Error: $e"),
+                                              content: Text(
+                                                  "Error al eliminar propietario: Asegúrese de que no haya dependencias activas o intente nuevamente."),
                                               backgroundColor: Colors.red,
                                             ),
                                           );
