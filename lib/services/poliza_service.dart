@@ -1,5 +1,6 @@
 //File: lib/services/poliza_service.dart
 import 'package:http/http.dart' as http;
+import 'package:seguros_front/models/propietario_model.dart';
 import 'dart:convert';
 import '../models/poliza_model.dart';
 import '../models/automovil_model.dart';
@@ -51,7 +52,7 @@ class PolizaService {
       headers: {"Content-Type": "application/json"},
       body: json.encode(propietarioData),
     );
-    if (propietarioResponse.statusCode != 200) {
+    if (propietarioResponse.statusCode != 200 && propietarioResponse.statusCode != 201) {
       throw Exception('Error al crear propietario: ${propietarioResponse.body}');
     }
     final propietario = json.decode(propietarioResponse.body);
@@ -69,7 +70,7 @@ class PolizaService {
       headers: {"Content-Type": "application/json"},
       body: json.encode(automovilData),
     );
-    if (automovilResponse.statusCode != 200) {
+    if (automovilResponse.statusCode != 200 && automovilResponse.statusCode != 201) {
       throw Exception('Error al crear automovil: ${automovilResponse.body}');
     }
     final automovil = json.decode(automovilResponse.body);
@@ -85,7 +86,7 @@ class PolizaService {
       headers: {"Content-Type": "application/json"},
       body: json.encode(seguroData),
     );
-    if (seguroResponse.statusCode != 200) {
+    if (seguroResponse.statusCode != 200 && seguroResponse.statusCode != 201) {
       throw Exception('Error al crear seguro: ${seguroResponse.body}');
     }
     final seguro = json.decode(seguroResponse.body);
@@ -278,7 +279,7 @@ class PolizaService {
       headers: {"Content-Type": "application/json"},
       body: json.encode(seguroData),
     );
-    if (seguroResponse.statusCode != 200) {
+    if (seguroResponse.statusCode != 200 && seguroResponse.statusCode != 201) {
       throw Exception('Error al crear seguro: ${seguroResponse.body}');
     }
     final seguroJson = json.decode(seguroResponse.body);
@@ -306,6 +307,16 @@ class PolizaService {
       propietarioId: automovilJson['propietarioId'],
       automovilId: automovilId,
     );
+  }
+
+  Future<List<Propietario>> obtenerPropietariosSinAutomoviles() async {
+    final response = await http.get(Uri.parse('$baseUrl/propietarios'));
+    if (response.statusCode != 200) {
+      throw Exception('Error al obtener propietarios: ${response.body}');
+    }
+    final List<dynamic> data = json.decode(response.body);
+    final propietarios = data.map((json) => Propietario.fromJson(json)).toList();
+    return propietarios.where((prop) => prop.automovilIds.isEmpty).toList();
   }
 
   int _parseEdad(String rango) {
