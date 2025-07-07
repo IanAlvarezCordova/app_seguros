@@ -1,9 +1,11 @@
-//File: lib/views/poliza_management_view.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../viewmodels/poliza_viewmodel.dart';
 import '../models/poliza_model.dart';
 import '../models/automovil_model.dart';
+import '../models/propietario_model.dart';
 
 class PolizaManagementView extends StatefulWidget {
   @override
@@ -22,6 +24,7 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
     final vm = Provider.of<PolizaViewModel>(context, listen: false);
     vm.obtenerPolizas();
     vm.obtenerAutomovilesSinSeguro();
+    vm.obtenerPropietariosSinAutomoviles();
   }
 
   @override
@@ -39,6 +42,8 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
     _accidentesController.text = vm.accidentes.toString();
     _costoController.text = vm.costoTotal.toString();
 
+    final _formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) {
@@ -49,140 +54,143 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
           ),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildTextField(
-                  controller: _propietarioController,
-                  label: "Propietario (Nombre Apellido)",
-                  onChanged: (val) => vm.propietario = val,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return "El campo es requerido";
-                    }
-                    final words = val.trim().split(' ');
-                    if (words.length != 2) {
-                      return "Debe ingresar nombre y apellido";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 12),
-                _buildTextField(
-                  controller: _valorController,
-                  label: "Valor del Auto",
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) => vm.valorSeguroAuto = double.tryParse(val) ?? 0.0,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return "El campo es requerido";
-                    }
-                    final valor = double.tryParse(val);
-                    if (valor == null || valor <= 0) {
-                      return "El valor debe ser mayor que 0";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: vm.modeloAuto,
-                  decoration: InputDecoration(
-                    labelText: "Modelo del Auto",
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTextField(
+                    controller: _propietarioController,
+                    label: "Propietario (Nombre Apellido)",
+                    onChanged: (val) => vm.propietario = val,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return "El campo es requerido";
+                      }
+                      final words = val.trim().split(' ');
+                      if (words.length != 2) {
+                        return "Debe ingresar nombre y apellido";
+                      }
+                      return null;
+                    },
                   ),
-                  items: [
-                    'Hyundai',
-                    'Tesla',
-                    'Toyota',
-                    'Ford',
-                    'Chevrolet',
-                    'BMW',
-                    'Mercedes',
-                    'Kia',
-                    'Nissan',
-                    'Volkswagen',
-                    'Audi',
-                    'Honda',
-                    'Otro'
-                  ].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                  onChanged: (val) {
-                    vm.modeloAuto = val!;
-                    vm.notifyListeners();
-                  },
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return "Seleccione un modelo";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: vm.edadPropietario,
-                  decoration: InputDecoration(
-                    labelText: "Edad del Propietario",
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
+                  SizedBox(height: 12),
+                  _buildTextField(
+                    controller: _valorController,
+                    label: "Valor del Auto",
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => vm.valorSeguroAuto = double.tryParse(val) ?? 0.0,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return "El campo es requerido";
+                      }
+                      final valor = double.tryParse(val);
+                      if (valor == null || valor <= 0) {
+                        return "El valor debe ser mayor que 0";
+                      }
+                      return null;
+                    },
                   ),
-                  items: ['18-23', '23-55', '55+']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(_textoEdad(e))))
-                      .toList(),
-                  onChanged: (val) {
-                    vm.edadPropietario = val!;
-                    vm.notifyListeners();
-                  },
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return "Seleccione un rango de edad";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 12),
-                _buildTextField(
-                  controller: _accidentesController,
-                  label: "Número de Accidentes",
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) => vm.accidentes = int.tryParse(val) ?? 0,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return "El campo es requerido";
-                    }
-                    final accidentes = int.tryParse(val);
-                    if (accidentes == null || accidentes < 0) {
-                      return "El número de accidentes no puede ser negativo";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 12),
-                _buildTextField(
-                  controller: _costoController,
-                  label: "Costo Total (opcional)",
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) => vm.costoTotal = double.tryParse(val) ?? 0.0,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return null; // Campo opcional
-                    }
-                    final costo = double.tryParse(val);
-                    if (costo == null || costo <= 0) {
-                      return "El costo debe ser mayor que 0";
-                    }
-                    return null;
-                  },
-                ),
-              ],
+                  SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: vm.modeloAuto,
+                    decoration: InputDecoration(
+                      labelText: "Modelo del Auto",
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    items: [
+                      'Hyundai',
+                      'Tesla',
+                      'Toyota',
+                      'Ford',
+                      'Chevrolet',
+                      'BMW',
+                      'Mercedes',
+                      'Kia',
+                      'Nissan',
+                      'Volkswagen',
+                      'Audi',
+                      'Honda',
+                      'Otro'
+                    ].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                    onChanged: (val) {
+                      vm.modeloAuto = val!;
+                      vm.notifyListeners();
+                    },
+                    validator: (val) {
+                      if (val == null || val.isEmpty) {
+                        return "Seleccione un modelo";
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: vm.edadPropietario,
+                    decoration: InputDecoration(
+                      labelText: "Edad del Propietario",
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    items: ['18-23', '23-55', '55+']
+                        .map((e) => DropdownMenuItem(value: e, child: Text(_textoEdad(e))))
+                        .toList(),
+                    onChanged: (val) {
+                      vm.edadPropietario = val!;
+                      vm.notifyListeners();
+                    },
+                    validator: (val) {
+                      if (val == null || val.isEmpty) {
+                        return "Seleccione un rango de edad";
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 12),
+                  _buildTextField(
+                    controller: _accidentesController,
+                    label: "Número de Accidentes",
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => vm.accidentes = int.tryParse(val) ?? 0,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return "El campo es requerido";
+                      }
+                      final accidentes = int.tryParse(val);
+                      if (accidentes == null || accidentes < 0) {
+                        return "El número de accidentes no puede ser negativo";
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 12),
+                  _buildTextField(
+                    controller: _costoController,
+                    label: "Costo Total (opcional)",
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => vm.costoTotal = double.tryParse(val) ?? 0.0,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return null;
+                      }
+                      final costo = double.tryParse(val);
+                      if (costo == null || costo <= 0) {
+                        return "El costo debe ser mayor que 0";
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -196,8 +204,7 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
-                final form = Form.of(context);
-                if (form != null && form.validate()) {
+                if (_formKey.currentState!.validate()) {
                   _guardarPoliza(context, vm);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -233,20 +240,151 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
     }
   }
 
+  void _showAgregarAutomovilDialog(BuildContext context, PolizaViewModel vm, Propietario propietario) {
+    final _modeloController = TextEditingController();
+    final _valorController = TextEditingController();
+    final _accidentesController = TextEditingController();
+    final _formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            "Agregar Automóvil a ${propietario.nombreCompleto}",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+          ),
+          content: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: 'Hyundai',
+                    decoration: InputDecoration(
+                      labelText: "Modelo del Auto",
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    items: [
+                      'Hyundai',
+                      'Tesla',
+                      'Toyota',
+                      'Ford',
+                      'Chevrolet',
+                      'BMW',
+                      'Mercedes',
+                      'Kia',
+                      'Nissan',
+                      'Volkswagen',
+                      'Audi',
+                      'Honda',
+                      'Otro'
+                    ].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                    onChanged: (val) {
+                      _modeloController.text = val!;
+                    },
+                    validator: (val) {
+                      if (val == null || val.isEmpty) {
+                        return "Seleccione un modelo";
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 12),
+                  _buildTextField(
+                    controller: _valorController,
+                    label: "Valor del Auto",
+                    keyboardType: TextInputType.number,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) return "El campo es requerido";
+                      final valor = double.tryParse(val);
+                      if (valor == null || valor <= 0) return "El valor debe ser mayor que 0";
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 12),
+                  _buildTextField(
+                    controller: _accidentesController,
+                    label: "Número de Accidentes",
+                    keyboardType: TextInputType.number,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) return "El campo es requerido";
+                      final accidentes = int.tryParse(val);
+                      if (accidentes == null || accidentes < 0) return "No puede ser negativo";
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancelar", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () async {
+                if (_formKey.currentState!.validate()) {
+                  try {
+                    final automovilData = {
+                      "modelo": _modeloController.text.isEmpty ? 'Hyundai' : _modeloController.text,
+                      "valor": double.parse(_valorController.text),
+                      "accidentes": int.parse(_accidentesController.text),
+                      "propietarioId": propietario.id,
+                    };
+                    final response = await http.post(
+                      Uri.parse('${vm.baseUrl}/automoviles'),
+                      headers: {"Content-Type": "application/json"},
+                      body: json.encode(automovilData),
+                    );
+                    if (response.statusCode == 200 || response.statusCode == 201) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Automóvil agregado"), backgroundColor: Colors.teal),
+                      );
+                      vm.obtenerPropietariosSinAutomoviles();
+                      vm.obtenerAutomovilesSinSeguro();
+                    } else {
+                      throw Exception('Error al agregar automóvil: ${response.body}');
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              child: Text("Agregar"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     TextInputType? keyboardType,
-    required Function(String) onChanged,
+    Function(String)? onChanged,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      onChanged: (val) {
-        onChanged(val);
-        Provider.of<PolizaViewModel>(context, listen: false).notifyListeners();
-      },
+      onChanged: onChanged,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
@@ -343,6 +481,7 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
             onPressed: () {
               vm.obtenerPolizas();
               vm.obtenerAutomovilesSinSeguro();
+              vm.obtenerPropietariosSinAutomoviles();
             },
             tooltip: 'Refrescar',
           ),
@@ -360,7 +499,7 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
       body: Container(
         color: Colors.grey.shade50,
         padding: EdgeInsets.all(16),
-        child: vm.polizas.isEmpty && vm.automovilesSinSeguro.isEmpty
+        child: vm.polizas.isEmpty && vm.automovilesSinSeguro.isEmpty && vm.propietariosSinAutomoviles.isEmpty
             ? Center(child: CircularProgressIndicator(color: Colors.teal))
             : SingleChildScrollView(
           scrollDirection: Axis.vertical,
@@ -608,6 +747,57 @@ class _PolizaManagementViewState extends State<PolizaManagementView> {
                                 }
                               },
                               child: Text("Agregar Seguro"),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              SizedBox(height: 24),
+              Text(
+                "Propietarios sin Automóviles",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal),
+              ),
+              SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: DataTable(
+                    columnSpacing: 16,
+                    dataRowHeight: 60,
+                    headingRowColor: MaterialStateProperty.all(Colors.teal.shade100),
+                    columns: [
+                      DataColumn(
+                          label: Text('ID',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
+                      DataColumn(
+                          label: Text('Nombre',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
+                      DataColumn(
+                          label: Text('Edad',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
+                      DataColumn(
+                          label: Text('Acciones',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
+                    ],
+                    rows: vm.propietariosSinAutomoviles.map((prop) {
+                      return DataRow(
+                        cells: [
+                          DataCell(Text(prop.id.toString())),
+                          DataCell(Text(prop.nombreCompleto)),
+                          DataCell(Text(prop.edad.toString())),
+                          DataCell(
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () => _showAgregarAutomovilDialog(context, vm, prop),
+                              child: Text("Agregar Automóvil"),
                             ),
                           ),
                         ],
