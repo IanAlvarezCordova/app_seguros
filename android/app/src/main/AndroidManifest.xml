@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- PERMISO DE INTERNET NECESARIO PARA RELEASE Y DEBUG -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Gestion Seguros"
         android:name="${applicationName}"
